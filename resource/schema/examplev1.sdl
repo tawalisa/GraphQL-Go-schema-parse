@@ -1,3 +1,24 @@
+type StockPrice {
+    Open: BigDecimal
+    High: BigDecimal
+    Low: BigDecimal
+    Close: BigDecimal
+    AdjClose: BigDecimal
+    Volume: Int
+    Date: String
+}
+
+type CompanyOfficer {
+    MaxAge: Int
+    Name: String
+    Age: Int
+    Title: String
+    YearBorn: Int
+    ExercisedValue: Int
+    UnexercisedValue: Int
+    FiscalYear: Int
+}
+
 type Company {
     Name: String
     Address1: String
@@ -110,26 +131,7 @@ type Company {
     TrailingPegRatio: BigDecimal
 }
 
-type CompanyOfficer {
-    MaxAge: Int
-    Name: String
-    Age: Int
-    Title: String
-    YearBorn: Int
-    ExercisedValue: Int
-    UnexercisedValue: Int
-    FiscalYear: Int
-}
 
-type StockPrice {
-    Open: BigDecimal
-    High: BigDecimal
-    Low: BigDecimal
-    Close: BigDecimal
-    AdjClose: BigDecimal
-    Volume: Int
-    Date: String
-}
 
 type Query {
     company(symbol: String!): Company
