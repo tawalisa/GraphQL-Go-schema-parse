@@ -28,12 +28,11 @@ type GraphQLParsingField struct {
 	params   []GraphqlParingParam
 }
 
-func Parsing(sdlContent string) (*graphql.Object, error) {
+func Parsing(sdlContent string, queryFucMap map[string]graphql.FieldResolveFn, schemaFucMap map[string]graphql.FieldResolveFn) (*graphql.Object, error) {
 
 	namespaces := strings.Split(sdlContent, "}")
-	types := []GraphQLParsingType{}
+	var types []GraphQLParsingType
 	for _, ns := range namespaces {
-		// 解析类型定义
 		ns = strings.TrimSpace(ns)
 		if strings.HasPrefix(ns, "type ") {
 			parsingType := GraphQLParsingType{}
@@ -55,34 +54,44 @@ func Parsing(sdlContent string) (*graphql.Object, error) {
 			types = append(types, parsingType)
 		}
 	}
-	println(types)
 	graphqlObjMap := make(map[string]*graphql.Object)
 	for _, t := range types {
 
-		graphqlObj := createGraphqlObj(t, graphqlObjMap)
+		graphqlObj := createGraphqlObj(t, graphqlObjMap, queryFucMap, schemaFucMap)
 		graphqlObjMap[t.name] = graphqlObj
 
 	}
 	return graphqlObjMap["Query"], nil
 }
 
-func createGraphqlObj(t GraphQLParsingType, objMap map[string]*graphql.Object) *graphql.Object {
+func createGraphqlObj(t GraphQLParsingType, objMap map[string]*graphql.Object, queryFucMap map[string]graphql.FieldResolveFn, schemaFucMap map[string]graphql.FieldResolveFn) *graphql.Object {
 
 	gfs := make(graphql.Fields)
 
 	for k, v := range t.fields {
 		gfs[k] = &graphql.Field{
+			Name: v.name,
 			Type: graphqlType(v.typeName, objMap),
 			Args: graphQLArgs(v.params, objMap),
 		}
+		if t.name == "Query" {
+			fuc, exist := queryFucMap[v.name]
+			if exist {
+				gfs[k].Resolve = fuc
+			}
+		} else {
+			fuc, exist := schemaFucMap[v.typeName]
+			if exist {
+				gfs[k].Resolve = fuc
+			}
+		}
+
 	}
 
-	ob := graphql.NewObject(graphql.ObjectConfig{
+	return graphql.NewObject(graphql.ObjectConfig{
 		Name:   t.name,
 		Fields: gfs,
 	})
-
-	return ob
 }
 
 func graphQLArgs(params []GraphqlParingParam, objMap map[string]*graphql.Object) graphql.FieldConfigArgument {
@@ -106,14 +115,20 @@ func extractArgs(s string) (string, bool) {
 
 func graphqlType(name string, objMap map[string]*graphql.Object) graphql.Output {
 	switch name {
+	case "ID":
+		return graphql.ID
 	case "String":
 		return graphql.String
 	case "Int":
 		return graphql.Int
 	case "BigDecimal":
 		return graphql.Float
+	case "Boolean":
+		return graphql.Boolean
+	case "DateTime":
+		return graphql.DateTime
 	default:
-		return graphql.NewList(getTypeByName(name, objMap))
+		return getTypeByName(name, objMap)
 	}
 
 }
@@ -125,17 +140,17 @@ func getTypeByName(name string, objMap map[string]*graphql.Object) graphql.Type 
 	if !exist {
 		panic("not find type " + name)
 	}
-	//ptrType := reflect.TypeOf(t)
-	//fmt.Println("Pointer type:", ptrType)
-	//listType, _ := reflect.TypeOf(t).Elem().(graphql.Type)
-
 	structValue := reflect.New(reflect.TypeOf(t).Elem())
 	structValue.Elem().Set(reflect.ValueOf(t).Elem())
 
+	structType, ok := structValue.Interface().(graphql.Type)
+	if !ok {
+		return nil
+	}
 	if isArray {
-		return graphql.NewList(structValue.Interface().(graphql.Type))
+		return graphql.NewList(structType)
 	} else {
-		return structValue.Interface().(graphql.Type)
+		return structType
 	}
 	return nil
 }
@@ -167,7 +182,7 @@ func parsingFiledParam(str string) (string, []GraphqlParingParam) {
 	if len(match) > 1 {
 		name := match[1]
 		bbb := match[3]
-		gpp := []GraphqlParingParam{}
+		var gpp []GraphqlParingParam
 		if bbb != "" {
 			ps := strings.Split(bbb, ",")
 			for _, p := range ps {
