@@ -1,4 +1,4 @@
-# GraphQL-Go-schema-
+# GraphQL-Go-Schema-Parser
 
 The project provides a tool to support from a SDL to GraphQL-go struct.
 Since I have not found a schema parsing for [GraphQL-GO](https://github.com/graphql-go/graphql). Then I try to implement it. So far, there are some limitations. But it has been used to my project.
