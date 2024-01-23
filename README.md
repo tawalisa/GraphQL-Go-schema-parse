@@ -283,5 +283,18 @@ query bookDetails {
 we can see the result in console.
 
 ```text
-{"data":{"bookById":{"author":{"firstName":"Herman","id":"author-2","lastName":"Melville"},"id":"book-2","name":"Moby Dick","pageCount":635}}} 
+{
+    "data": {
+        "bookById": {
+            "author": {
+                "firstName": "Herman",
+                "id": "author-2",
+                "lastName": "Melville"
+            },
+            "id": "book-2",
+            "name": "Moby Dick",
+            "pageCount": 635
+        }
+    }
+}
 ```
